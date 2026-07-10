@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="gu">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>⛽ PumpPro - Petrol Pump Management</title>
+  <meta name="description" content="Petrol Pump Daily Sales, Stock & Nozzle Management System - Shift wise Report" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <!-- jsPDF for PDF generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+</head>
+<body>
+  <div id="app">
+
+    <!-- ===== SIDEBAR ===== -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-icon">⛽</div>
+        <div class="logo-text">
+          <span class="logo-title">PumpPro</span>
+          <span class="logo-sub" id="sidebarPumpName">Petrol Pump</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="#" class="nav-item active" onclick="showPage('dashboard',this)">
+          <span class="nav-icon">📊</span>
+          <span class="nav-label">Dashboard</span>
+        </a>
+        <a href="#" class="nav-item" onclick="showPage('shift-entry',this)">
+          <span class="nav-icon">📝</span>
+          <span class="nav-label">Shift Entry</span>
+        </a>
+        <a href="#" class="nav-item" onclick="showPage('tank-stock',this)">
+          <span class="nav-icon">🛢️</span>
+          <span class="nav-label">Tank Stock</span>
+        </a>
+        <a href="#" class="nav-item" onclick="showPage('nozzle-report',this)">
+          <span class="nav-icon">⛽</span>
+          <span class="nav-label">Nozzle Report</span>
+        </a>
+        <a href="#" class="nav-item" onclick="showPage('daily-report',this)">
+          <span class="nav-icon">📅</span>
+          <span class="nav-label">Daily Report</span>
+        </a>
+        <a href="#" class="nav-item" onclick="showPage('dsr-report',this)">
+          <span class="nav-icon">📋</span>
+          <span class="nav-label">DSR Report</span>
+        </a>
+        <a href="#" class="nav-item" onclick="showPage('settings',this)">
+          <span class="nav-icon">⚙️</span>
+          <span class="nav-label">Settings</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="live-clock" id="liveClock">--:--:--</div>
+        <div class="live-date" id="liveDate">Loading...</div>
+      </div>
+    </aside>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <main class="main-content">
+
+      <!-- Top Bar -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="hamburger" onclick="toggleSidebar()">
+            <span></span><span></span><span></span>
+          </button>
+          <h1 class="page-heading" id="pageHeading">Dashboard</h1>
+        </div>
+        <div class="topbar-right">
+          <div class="shift-tag" id="shiftTag">🌞 Day Shift</div>
+          <div class="top-date" id="topDate"></div>
+        </div>
+      </header>
+
+      <!-- ==============================
+           PAGE: DASHBOARD
+      ============================== -->
+      <div class="page active" id="page-dashboard">
+        <div class="dash-grid">
+
+          <!-- Stat Cards -->
+          <div class="stat-cards">
+            <div class="stat-card petrol-card">
+              <div class="sc-left">
+                <div class="sc-icon">🔴</div>
+              </div>
+              <div class="sc-right">
+                <div class="sc-label">Petrol Sales Today</div>
+                <div class="sc-val" id="dc-petrol-l">0.00 L</div>
+                <div class="sc-amt" id="dc-petrol-rs">₹ 0.00</div>
+              </div>
+            </div>
+            <div class="stat-card diesel-card">
+              <div class="sc-left">
+                <div class="sc-icon">🟡</div>
+              </div>
+              <div class="sc-right">
+                <div class="sc-label">Diesel Sales Today</div>
+                <div class="sc-val" id="dc-diesel-l">0.00 L</div>
+                <div class="sc-amt" id="dc-diesel-rs">₹ 0.00</div>
+              </div>
+            </div>
+            <div class="stat-card total-card">
+              <div class="sc-left">
+                <div class="sc-icon">💰</div>
+              </div>
+              <div class="sc-right">
+                <div class="sc-label">Total Collection Today</div>
+                <div class="sc-val" id="dc-total-rs">₹ 0.00</div>
+                <div class="sc-amt" id="dc-shifts">0 shifts recorded</div>
+              </div>
+            </div>
+            <div class="stat-card diff-card">
+              <div class="sc-left">
+                <div class="sc-icon">⚖️</div>
+              </div>
+              <div class="sc-right">
+                <div class="sc-label">Today +/- Difference</div>
+                <div class="sc-val" id="dc-diff">₹ 0.00</div>
+                <div class="sc-amt" id="dc-diff-note">Cash vs Sales</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tank Status -->
+          <div class="dash-section">
+            <div class="card">
+              <div class="card-hdr">
+                <h2>🛢️ Tank Current Stock</h2>
+                <span class="badge-live">LIVE</span>
+              </div>
+              <div id="dashTankStatus">
+                <div class="empty-msg">⚙️ Go to Settings → Configure Tanks first.</div>
+              </div>
+            </div>
+
+            <!-- Recent Entries -->
+            <div class="card">
+              <div class="card-hdr">
+                <h2>📋 Recent Shift Entries</h2>
+              </div>
+              <div id="dashRecentShifts">
+                <div class="empty-msg">No shifts recorded yet. Start with Shift Entry.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==============================
+           PAGE: SHIFT ENTRY
+      ============================== -->
+      <div class="page" id="page-shift-entry">
+        <div class="entry-wrap">
+
+          <!-- Shift Header Bar -->
+          <div class="entry-topbar">
+            <div class="shift-toggle">
+              <button class="shift-btn active" id="btnDay" onclick="selectShift('day')">🌞 Day Shift (6AM - 6PM)</button>
+              <button class="shift-btn" id="btnNight" onclick="selectShift('night')">🌙 Night Shift (6PM - 6AM)</button>
+            </div>
+            <div class="entry-date-wrap" style="display:flex; align-items:center; gap:8px;">
+              <label>📅 Date:</label>
+              <input type="date" id="entryDate" class="inp-date" onchange="loadShiftIfExists()" />
+            </div>
+            <!-- Lock status badge -->
+            <div id="shiftLockStatus" style="display:none; align-items:center; gap:8px; background:rgba(255,100,100,0.12); border:1px solid rgba(255,100,100,0.25); padding:4px 12px; border-radius:6px; margin: 0 8px;">
+              <span style="color:#ff6b6b; font-size:12px; font-weight:700; white-space:nowrap;">🔒 Locked</span>
+              <button type="button" class="btn-primary" style="padding:2px 8px; font-size:11px; height:auto; background:var(--accent); line-height:1.2; border:none;" onclick="promptUnlockShift()">Unlock</button>
+            </div>
+            <div class="entry-date-wrap" style="display:flex; align-items:center; gap:8px;">
+              <label style="color:var(--petrol); font-weight:600;">🔴 Petrol Rate (₹):</label>
+              <input type="number" id="entryRatePetrol" class="inp-num" style="width:90px; text-align:center;" step="0.01" oninput="updateRatesFromEntry()" />
+            </div>
+            <div class="entry-date-wrap" style="display:flex; align-items:center; gap:8px;">
+              <label style="color:var(--diesel); font-weight:600;">🟡 Diesel Rate (₹):</label>
+              <input type="number" id="entryRateDiesel" class="inp-num" style="width:90px; text-align:center;" step="0.01" oninput="updateRatesFromEntry()" />
+            </div>
+          </div>
+
+          <!-- Nozzle Entry Table -->
+          <div class="card">
+            <div class="card-hdr">
+              <h2>⛽ Nozzle Reading Entry</h2>
+              <span class="card-hint">Enter Opening & Closing Meter Readings</span>
+            </div>
+            <div class="tbl-scroll">
+              <table class="pump-table" id="nozzleEntryTable">
+                <thead>
+                  <tr>
+                    <th>Nozzle</th>
+                    <th>Fuel</th>
+                    <th>Opening Reading</th>
+                    <th>Closing Reading</th>
+                    <th>Testing (L)</th>
+                    <th>Sale (L)</th>
+                    <th>Rate (₹/L)</th>
+                    <th>Amount (₹)</th>
+                  </tr>
+                </thead>
+                <tbody id="nozzleEntryBody">
+                  <tr><td colspan="8" class="empty-msg">⚙️ Configure Nozzles in Settings first.</td></tr>
+                </tbody>
+                <tfoot>
+                  <tr class="tfoot-row">
+                    <td colspan="5"><strong>TOTAL</strong></td>
+                    <td><strong id="entryTotalL">0.00 L</strong></td>
+                    <td>—</td>
+                    <td><strong id="entryTotalRs">₹ 0.00</strong></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+
+          <!-- Tank Dipping + Cash Row -->
+          <div class="two-col">
+
+            <!-- Tank Dipping -->
+            <div class="card">
+              <div class="card-hdr"><h2>🛢️ Tank Dipping Reading</h2></div>
+              <div id="tankDipArea">
+                <div class="empty-msg">No tanks configured.</div>
+              </div>
+            </div>
+
+            <!-- Cash Collection -->
+            <div class="card">
+              <div class="card-hdr"><h2>💰 Cash &amp; Collection</h2></div>
+              <div class="cash-block">
+
+                <!-- Fixed Modes -->
+                <div class="cash-row">
+                  <label>💳 Card (₹)</label>
+                  <input type="number" id="inCard" class="inp-num" placeholder="0" oninput="recalcCash()" />
+                </div>
+                <div class="cash-row">
+                  <label>📱 UPI (₹)</label>
+                  <input type="number" id="inUPI" class="inp-num" placeholder="0" oninput="recalcCash()" />
+                </div>
+                <div class="cash-row">
+                  <label>⚡ ExtraPower Card (₹)</label>
+                  <input type="number" id="inExtraPower" class="inp-num" placeholder="0" oninput="recalcCash()" />
+                </div>
+                <div class="cash-row">
+                  <label>📒 Credit / Party (₹)</label>
+                  <input type="number" id="inCredit" class="inp-num" placeholder="0" oninput="recalcCash()" />
+                </div>
+
+                <!-- 7 Custom Other Items -->
+                <div class="other-items-header">
+                  <span>📋 Other Items (Kharch / Income)</span>
+                  <span class="other-subtotal" id="otherSubtotal">₹ 0</span>
+                </div>
+                <div class="other-items-grid" id="otherItemsGrid">
+                  <!-- Row 1 -->
+                  <div class="other-item-row">
+                    <input type="text"   id="otherName1" class="inp-text other-name" placeholder="નામ લખો..." oninput="recalcCash()" />
+                    <input type="number" id="otherAmt1"  class="inp-num  other-amt"  placeholder="₹ 0" oninput="recalcCash()" />
+                  </div>
+                  <!-- Row 2 -->
+                  <div class="other-item-row">
+                    <input type="text"   id="otherName2" class="inp-text other-name" placeholder="નામ લખો..." oninput="recalcCash()" />
+                    <input type="number" id="otherAmt2"  class="inp-num  other-amt"  placeholder="₹ 0" oninput="recalcCash()" />
+                  </div>
+                  <!-- Row 3 -->
+                  <div class="other-item-row">
+                    <input type="text"   id="otherName3" class="inp-text other-name" placeholder="નામ લખો..." oninput="recalcCash()" />
+                    <input type="number" id="otherAmt3"  class="inp-num  other-amt"  placeholder="₹ 0" oninput="recalcCash()" />
+                  </div>
+                  <!-- Row 4 -->
+                  <div class="other-item-row">
+                    <input type="text"   id="otherName4" class="inp-text other-name" placeholder="નામ લખો..." oninput="recalcCash()" />
+                    <input type="number" id="otherAmt4"  class="inp-num  other-amt"  placeholder="₹ 0" oninput="recalcCash()" />
+                  </div>
+                  <!-- Row 5 -->
+                  <div class="other-item-row">
+                    <input type="text"   id="otherName5" class="inp-text other-name" placeholder="નામ લખો..." oninput="recalcCash()" />
+                    <input type="number" id="otherAmt5"  class="inp-num  other-amt"  placeholder="₹ 0" oninput="recalcCash()" />
+                  </div>
+                  <!-- Row 6 -->
+                  <div class="other-item-row">
+                    <input type="text"   id="otherName6" class="inp-text other-name" placeholder="નામ લખો..." oninput="recalcCash()" />
+                    <input type="number" id="otherAmt6"  class="inp-num  other-amt"  placeholder="₹ 0" oninput="recalcCash()" />
+                  </div>
+                  <!-- Row 7 -->
+                  <div class="other-item-row">
+                    <input type="text"   id="otherName7" class="inp-text other-name" placeholder="નામ લખો..." oninput="recalcCash()" />
+                    <input type="number" id="otherAmt7"  class="inp-num  other-amt"  placeholder="₹ 0" oninput="recalcCash()" />
+                  </div>
+                </div>
+
+                <!-- Main Cash Input Field -->
+                <div class="cash-row" style="margin-top: 16px; border-top: 1px dashed rgba(255,255,255,0.06); padding-top: 16px;">
+                  <label style="font-weight: 700; color: var(--success);">💵 Cash (₹)</label>
+                  <input type="number" id="inCash" class="inp-num" style="border-color: rgba(45,212,164,0.3); font-weight: 700; text-align: right;" placeholder="0" oninput="recalcCash()" />
+                </div>
+
+                <div class="cash-divider"></div>
+
+                <!-- Summaries -->
+                <div class="cash-row summary-row">
+                  <label>💰 Total Collection</label>
+                  <span class="cash-total" id="cashTotalDisplay">₹ 0.00</span>
+                </div>
+                <div class="cash-row summary-row">
+                  <label>⛽ Total Sales</label>
+                  <span class="cash-total" id="cashSalesDisplay">₹ 0.00</span>
+                </div>
+                <div class="cash-row diff-row" id="cashDiffRow">
+                  <label>⚖️ +/- Difference</label>
+                  <span class="cash-diff" id="cashDiffDisplay">₹ 0.00</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Remarks + Save -->
+          <div class="card">
+            <div class="card-hdr"><h2>📝 Remarks / Notes</h2></div>
+            <textarea id="shiftRemarks" class="inp-remarks" placeholder="Any remarks for this shift..."></textarea>
+          </div>
+
+          <div class="entry-actions">
+            <button class="btn-ghost" onclick="clearEntry()">🗑️ Clear Form</button>
+            <button class="btn-save" onclick="saveShift()">💾 Save Shift Entry</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==============================
+           PAGE: TANK STOCK
+      ============================== -->
+      <div class="page" id="page-tank-stock">
+        <div class="rpt-wrap">
+          <div class="rpt-topbar">
+            <div class="filter-row">
+              <div class="fg">
+                <label>From</label>
+                <input type="date" id="tankFrom" class="inp-date" />
+              </div>
+              <div class="fg">
+                <label>To</label>
+                <input type="date" id="tankTo" class="inp-date" />
+              </div>
+              <button class="btn-search" onclick="loadTankStock()">🔍 Search</button>
+            </div>
+            <button class="btn-primary" onclick="openSupplyModal()">➕ Add Fuel Supply</button>
+          </div>
+
+          <!-- Supply History -->
+          <div class="card">
+            <div class="card-hdr"><h2>🚛 Fuel Supply / Receipt History</h2></div>
+            <div class="tbl-scroll">
+              <table class="pump-table" id="supplyHistoryTable">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Tank</th>
+                    <th>Fuel</th>
+                    <th>Qty Received (L)</th>
+                    <th>Bill No.</th>
+                    <th>Remark</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="supplyHistoryBody">
+                  <tr><td colspan="7" class="empty-msg">No supply records found.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Tank Wise Stock Summary -->
+          <div class="card">
+            <div class="card-hdr"><h2>🛢️ Tank-Wise Stock Summary</h2></div>
+            <div class="tbl-scroll">
+              <table class="pump-table" id="tankSummaryTable">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Tank</th>
+                    <th>Fuel</th>
+                    <th>Opening Stock (L)</th>
+                    <th>Supply Received (L)</th>
+                    <th>Total Sales (L)</th>
+                    <th>Closing Stock (L)</th>
+                    <th>+/- Diff</th>
+                  </tr>
+                </thead>
+                <tbody id="tankSummaryBody">
+                  <tr><td colspan="8" class="empty-msg">No data found.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==============================
+           PAGE: NOZZLE REPORT
+      ============================== -->
+      <div class="page" id="page-nozzle-report">
+        <div class="rpt-wrap">
+          <div class="rpt-topbar">
+            <div class="filter-row">
+              <div class="fg">
+                <label>From</label>
+                <input type="date" id="nozFrom" class="inp-date" />
+              </div>
+              <div class="fg">
+                <label>To</label>
+                <input type="date" id="nozTo" class="inp-date" />
+              </div>
+              <div class="fg">
+                <label>Fuel Type</label>
+                <select id="nozFuelFilter" class="inp-select">
+                  <option value="all">All Fuels</option>
+                  <option value="Petrol">Petrol</option>
+                  <option value="Diesel">Diesel</option>
+                </select>
+              </div>
+              <div class="fg">
+                <label>Shift</label>
+                <select id="nozShiftFilter" class="inp-select">
+                  <option value="all">All Shifts</option>
+                  <option value="day">Day Shift</option>
+                  <option value="night">Night Shift</option>
+                </select>
+              </div>
+              <button class="btn-search" onclick="loadNozzleReport()">🔍 Search</button>
+            </div>
+            <button class="btn-print" onclick="printSection('nozzleReportPrint')">🖨️ Print</button>
+          </div>
+
+          <div id="nozzleReportPrint">
+            <div class="print-header" style="display:none">
+              <h2 id="printPumpName2"></h2>
+              <p id="printPumpAddr2"></p>
+              <h3>Nozzle Sales Report</h3>
+            </div>
+            <div class="card">
+              <div class="card-hdr">
+                <h2>⛽ Nozzle-wise Sales Report</h2>
+                <div class="report-totals" id="nozReportTotals"></div>
+              </div>
+              <div class="tbl-scroll">
+                <table class="pump-table" id="nozzleRptTable">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Shift</th>
+                      <th>Nozzle</th>
+                      <th>Fuel</th>
+                      <th>Opening</th>
+                      <th>Closing</th>
+                      <th>Sale (L)</th>
+                      <th>Rate (₹)</th>
+                      <th>Amount (₹)</th>
+                    </tr>
+                  </thead>
+                  <tbody id="nozzleRptBody">
+                    <tr><td colspan="9" class="empty-msg">Select date range and search.</td></tr>
+                  </tbody>
+                  <tfoot>
+                    <tr class="tfoot-row" id="nozRptFoot" style="display:none">
+                      <td colspan="6"><strong>TOTAL</strong></td>
+                      <td id="nozRptTotalL"></td>
+                      <td>—</td>
+                      <td id="nozRptTotalRs"></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==============================
+           PAGE: DAILY REPORT
+      ============================== -->
+      <div class="page" id="page-daily-report">
+        <div class="rpt-wrap">
+          <div class="rpt-topbar">
+            <div class="filter-row">
+              <div class="fg">
+                <label>📅 Shift-wise PDF Date</label>
+                <input type="date" id="dailyDate" class="inp-date" onchange="loadDailyReport()" />
+              </div>
+              <div class="fg">
+                <label>From (Range)</label>
+                <input type="date" id="dailyFrom" class="inp-date" />
+              </div>
+              <div class="fg">
+                <label>To (Range)</label>
+                <input type="date" id="dailyTo" class="inp-date" />
+              </div>
+              <button class="btn-search" onclick="loadDailyRange()">📊 Range Report</button>
+            </div>
+            <div class="pdf-btn-group">
+              <button class="btn-pdf-shift" onclick="generateShiftPDF()">
+                📄 Shift-wise PDF
+                <span class="pdf-btn-hint">Nozzle + Tank Stock + Cash</span>
+              </button>
+              <button class="btn-pdf-daily" onclick="generateDailySalesPDF()">
+                📊 Daily Sales PDF
+                <span class="pdf-btn-hint">Date-wise Sales Summary</span>
+              </button>
+              <button class="btn-print" onclick="printSection('dailyReportPrint')">🖨️ Print</button>
+            </div>
+          </div>
+
+          <div id="dailyReportPrint">
+            <div id="dailyReportContent">
+              <div class="card">
+                <div class="empty-msg" style="padding:40px 20px">📅 Select a date above to view the daily report.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==============================
+           PAGE: DSR REPORT
+      ============================== -->
+      <div class="page" id="page-dsr-report">
+        <div class="rpt-wrap" style="max-width: 100%;">
+          <div class="rpt-topbar">
+            <div class="filter-row">
+              <div class="fg">
+                <label>📅 Select Month</label>
+                <input type="month" id="dsrMonth" class="inp-date" onchange="loadDSRReport()" />
+              </div>
+              <button class="btn-search" onclick="loadDSRReport()">🔍 Generate DSR</button>
+            </div>
+            <div class="pdf-btn-group">
+              <button class="btn-pdf-daily" onclick="exportDSRCSV()">
+                📤 Export Excel (CSV)
+              </button>
+              <button class="btn-print" onclick="printSection('dsrReportPrint')">🖨️ Print DSR</button>
+            </div>
+          </div>
+
+          <div id="dsrReportPrint">
+            <div class="print-header" style="display:none">
+              <h2 id="printPumpNameDSR"></h2>
+              <p id="printPumpAddrDSR"></p>
+              <h3>Daily Sales Register (DSR) Report</h3>
+            </div>
+            
+            <div class="dsr-split-layout" id="dsrContainer">
+              <div class="card" style="width: 100%;">
+                <div class="empty-msg" style="padding:40px 20px">📅 Select a month above to view the DSR Report.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==============================
+           PAGE: SETTINGS
+      ============================== -->
+      <div class="page" id="page-settings">
+        <div class="settings-wrap">
+
+          <!-- Pump Info -->
+          <div class="card">
+            <div class="card-hdr"><h2>🏪 Pump Information</h2></div>
+            <div class="sett-form">
+              <div class="sett-row">
+                <label>Pump Name</label>
+                <input type="text" id="setPumpName" class="inp-text" placeholder="e.g. Shree Ram Petrol Pump" />
+              </div>
+              <div class="sett-row">
+                <label>Owner Name</label>
+                <input type="text" id="setOwner" class="inp-text" placeholder="Owner name" />
+              </div>
+              <div class="sett-row">
+                <label>Address</label>
+                <input type="text" id="setAddress" class="inp-text" placeholder="Full address" />
+              </div>
+              <div class="sett-row">
+                <label>GST No.</label>
+                <input type="text" id="setGST" class="inp-text" placeholder="GST Number (optional)" />
+              </div>
+              <div class="sett-row">
+                <label>Contact</label>
+                <input type="text" id="setContact" class="inp-text" placeholder="Phone number" />
+              </div>
+              <button class="btn-save" onclick="savePumpInfo()">💾 Save Pump Info</button>
+            </div>
+          </div>
+
+          <!-- Fuel Rates -->
+          <div class="card">
+            <div class="card-hdr">
+              <h2>💹 Current Fuel Rates</h2>
+              <span class="card-hint">Auto-filled in Shift Entry</span>
+            </div>
+            <div class="sett-form">
+              <div class="sett-row">
+                <label>🔴 Petrol Rate (₹ / Litre)</label>
+                <input type="number" id="setRatePetrol" class="inp-num" placeholder="0.00" step="0.01" />
+              </div>
+              <div class="sett-row">
+                <label>🟡 Diesel Rate (₹ / Litre)</label>
+                <input type="number" id="setRateDiesel" class="inp-num" placeholder="0.00" step="0.01" />
+              </div>
+              <button class="btn-save" onclick="saveRates()">💾 Save Rates</button>
+            </div>
+          </div>
+
+          <!-- Tank Config -->
+          <div class="card">
+            <div class="card-hdr">
+              <h2>🛢️ Tank Configuration</h2>
+              <button class="btn-add" onclick="addTankRow()">➕ Add Tank</button>
+            </div>
+            <div class="tbl-scroll">
+              <table class="pump-table">
+                <thead>
+                  <tr>
+                    <th>Tank No.</th>
+                    <th>Fuel Type</th>
+                    <th>Capacity (L)</th>
+                    <th>Current Stock (L)</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="tankConfigBody"></tbody>
+              </table>
+            </div>
+            <button class="btn-save" style="margin-top:16px" onclick="saveTankConfig()">💾 Save Tanks</button>
+          </div>
+
+          <!-- Nozzle Config -->
+          <div class="card">
+            <div class="card-hdr">
+              <h2>⛽ Nozzle Configuration</h2>
+              <button class="btn-add" onclick="addNozzleRow()">➕ Add Nozzle</button>
+            </div>
+            <div class="tbl-scroll">
+              <table class="pump-table">
+                <thead>
+                  <tr>
+                    <th>Nozzle No.</th>
+                    <th>Nozzle Name</th>
+                    <th>Fuel Type</th>
+                    <th>Tank</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="nozzleConfigBody"></tbody>
+              </table>
+            </div>
+            <button class="btn-save" style="margin-top:16px" onclick="saveNozzleConfig()">💾 Save Nozzles</button>
+          </div>
+
+          <!-- Data Management -->
+          <div class="card danger-zone">
+            <div class="card-hdr"><h2>💾 Data Management</h2></div>
+            <div class="data-mgmt-btns">
+              <button class="btn-export" onclick="exportData()">📤 Export All Data</button>
+              <button class="btn-import" onclick="document.getElementById('importFileInput').click()">📥 Import Data</button>
+              <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="importData(event)" />
+              <button class="btn-danger" onclick="clearAllData()">🗑️ Clear All Data</button>
+            </div>
+            <p class="danger-note">⚠️ All data is stored locally in your browser. Export regularly to backup.</p>
+          </div>
+
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ===== SUPPLY MODAL ===== -->
+  <div class="modal-bg" id="supplyModal" style="display:none">
+    <div class="modal-box">
+      <div class="modal-hdr">
+        <h3>🚛 Add Fuel Supply / Receipt</h3>
+        <button class="modal-close-btn" onclick="closeModal('supplyModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="mrow">
+          <label>Date</label>
+          <input type="date" id="supDate" class="inp-date" />
+        </div>
+        <div class="mrow">
+          <label>Tank</label>
+          <select id="supTank" class="inp-select"></select>
+        </div>
+        <div class="mrow">
+          <label>Quantity Received (Litres)</label>
+          <input type="number" id="supQty" class="inp-num" placeholder="0.00" />
+        </div>
+        <div class="mrow">
+          <label>Bill / Invoice No.</label>
+          <input type="text" id="supBill" class="inp-text" placeholder="Invoice number" />
+        </div>
+        <div class="mrow">
+          <label>Supplier Name</label>
+          <input type="text" id="supSupplier" class="inp-text" placeholder="Supplier name" />
+        </div>
+        <div class="mrow">
+          <label>Remarks</label>
+          <input type="text" id="supRemark" class="inp-text" placeholder="Optional" />
+        </div>
+      </div>
+      <div class="modal-ftr">
+        <button class="btn-ghost" onclick="closeModal('supplyModal')">Cancel</button>
+        <button class="btn-save" onclick="saveSupply()">✅ Save Supply</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TOAST NOTIFICATION ===== -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Firebase SDKs (Compatibility Mode for Vanilla JS) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+  <script src="app.js"></script>
+</body>
+</html>
