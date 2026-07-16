@@ -121,7 +121,7 @@ async function saveToStorage() {
 }
 
 async function loadFromServer() {
-  // Try loading from PC file (server)
+  // 1. Try loading from PC local server
   try {
     const res = await fetch(`${SERVER_URL}/api/load`);
     if (res.ok) {
@@ -137,10 +137,29 @@ async function loadFromServer() {
       }
     }
   } catch (e) {
-    console.warn('Server not reachable, trying localStorage...');
+    console.warn('Local server not reachable, trying hosted file...');
   }
 
-  // Fallback: load from localStorage
+  // 2. Fallback: try loading from the hosted path (e.g. GitHub Pages './data.json')
+  try {
+    const res = await fetch('./data.json', { cache: 'no-store' });
+    if (res.ok) {
+      const raw = await res.text();
+      const loaded = JSON.parse(raw);
+      if (loaded && Object.keys(loaded).length > 0) {
+        state = { ...state, ...loaded };
+        localStorage.setItem('pumppro_data', JSON.stringify(state)); // sync to localStorage too
+        serverOnline = false;
+        showServerStatus('offline');
+        console.log('📦 Data loaded from hosted GitHub Pages (data.json)');
+        return;
+      }
+    }
+  } catch (e) {
+    console.warn('Hosted data.json not reachable, trying localStorage...');
+  }
+
+  // 3. Fallback: load from localStorage
   const raw = localStorage.getItem('pumppro_data');
   if (raw) {
     try {
