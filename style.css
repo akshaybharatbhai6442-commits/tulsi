@@ -6,46 +6,46 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg:           #0d0f1a;
-  --bg2:          #12152a;
-  --bg3:          #181c35;
-  --card:         #1a1f3a;
-  --card-border:  #252c50;
+  --bg:           #07090e;
+  --bg2:          #0d101d;
+  --bg3:          #13172a;
+  --card:         rgba(20, 24, 46, 0.65); /* Glassmorphic Card Background */
+  --card-border:  rgba(255, 255, 255, 0.07); /* Subtle border for glass look */
   --sidebar-w:    240px;
   --topbar-h:     64px;
 
   --petrol:       #ff4d4d;
   --petrol-soft:  rgba(255,77,77,0.12);
-  --diesel:       #f5a623;
-  --diesel-soft:  rgba(245,166,35,0.12);
+  --diesel:       #ff9800;
+  --diesel-soft:  rgba(255,152,0,0.12);
   --green:        #2dd4a4;
   --green-soft:   rgba(45,212,164,0.12);
-  --blue:         #4f8dff;
-  --blue-soft:    rgba(79,141,255,0.12);
-  --purple:       #a78bfa;
-  --purple-soft:  rgba(167,139,250,0.12);
+  --blue:         #0055d4; /* Indian Oil Deep Blue */
+  --blue-soft:    rgba(0,85,212,0.12);
+  --purple:       #ff6f00; /* Indian Oil Orange/Saffron */
+  --purple-soft:  rgba(255,111,0,0.12);
 
   --text:         #e8eaf6;
   --text2:        #9fa3c0;
   --text3:        #6b7094;
 
-  --accent:       #4f8dff;
-  --accent-glow:  rgba(79,141,255,0.25);
+  --accent:       #ff6f00; /* Indian Oil Orange/Saffron */
+  --accent-glow:  rgba(255,111,0,0.25);
 
   --success:      #2dd4a4;
-  --warning:      #f5a623;
+  --warning:      #ff9800;
   --danger:       #ff4d4d;
 
   --radius:       14px;
   --radius-sm:    8px;
   --shadow:       0 4px 24px rgba(0,0,0,0.4);
-  --shadow-glow:  0 0 24px rgba(79,141,255,0.15);
+  --shadow-glow:  0 0 24px rgba(255,111,0,0.15);
 }
 
 html, body {
   height: 100%;
-  font-family: 'Inter', sans-serif;
-  background: var(--bg);
+  font-family: 'Outfit', 'Inter', sans-serif;
+  background: radial-gradient(circle at 80% 20%, #121832 0%, #07090e 100%);
   color: var(--text);
   font-size: 14px;
   overflow: hidden;
@@ -85,11 +85,11 @@ html, body {
   gap: 12px;
   padding: 20px 16px;
   border-bottom: 1px solid var(--card-border);
-  background: rgba(79,141,255,0.05);
+  background: rgba(255,111,0,0.05);
 }
 .logo-icon {
   font-size: 28px;
-  filter: drop-shadow(0 0 10px rgba(79,141,255,0.5));
+  filter: drop-shadow(0 0 10px rgba(255,111,0,0.5));
 }
 .logo-text {
   display: flex;
@@ -100,7 +100,7 @@ html, body {
   font-family: 'Outfit', sans-serif;
   font-size: 18px;
   font-weight: 800;
-  background: linear-gradient(135deg, #4f8dff, #a78bfa);
+  background: linear-gradient(135deg, #0055d4, #ff6f00);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -135,14 +135,14 @@ html, body {
   cursor: pointer;
 }
 .nav-item:hover {
-  background: rgba(79,141,255,0.08);
+  background: rgba(255,111,0,0.08);
   color: var(--text);
 }
 .nav-item.active {
-  background: linear-gradient(135deg, rgba(79,141,255,0.2), rgba(167,139,250,0.15));
+  background: linear-gradient(135deg, rgba(0,85,212,0.25), rgba(255,111,0,0.2));
   color: #fff;
-  border: 1px solid rgba(79,141,255,0.3);
-  box-shadow: 0 2px 12px rgba(79,141,255,0.15);
+  border: 1px solid rgba(255,111,0,0.3);
+  box-shadow: 0 2px 12px rgba(255,111,0,0.15);
 }
 .nav-icon { font-size: 18px; }
 .nav-label { font-size: 13px; font-weight: 500; }
@@ -209,13 +209,13 @@ html, body {
 }
 .topbar-right { display: flex; align-items: center; gap: 12px; }
 .shift-tag {
-  background: linear-gradient(135deg, rgba(79,141,255,0.2), rgba(167,139,250,0.2));
-  border: 1px solid rgba(79,141,255,0.35);
+  background: linear-gradient(135deg, rgba(0,85,212,0.15), rgba(255,111,0,0.15));
+  border: 1px solid rgba(255,111,0,0.25);
   padding: 6px 14px;
   border-radius: 20px;
   font-size: 12px;
   font-weight: 600;
-  color: var(--accent);
+  color: #ff9f40;
   white-space: nowrap;
 }
 .top-date {
@@ -241,7 +241,7 @@ html, body {
 }
 .page::-webkit-scrollbar-track, .tbl-scroll::-webkit-scrollbar-track { background: transparent; }
 .page::-webkit-scrollbar-thumb, .tbl-scroll::-webkit-scrollbar-thumb {
-  background: rgba(79,141,255,0.3); border-radius: 10px;
+  background: rgba(255,111,0,0.35); border-radius: 10px;
 }
 
 /* ============================
@@ -253,9 +253,14 @@ html, body {
   border-radius: var(--radius);
   margin-bottom: 20px;
   overflow: hidden;
-  transition: box-shadow 0.3s;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
-.card:hover { box-shadow: 0 4px 20px rgba(79,141,255,0.08); }
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(255, 111, 0, 0.12);
+}
 .card-hdr {
   padding: 16px 20px;
   border-bottom: 1px solid var(--card-border);
@@ -509,7 +514,8 @@ html, body {
 .pump-table .inp-reading:focus {
   outline: none;
   border-color: var(--accent);
-  background: rgba(79,141,255,0.08);
+  background: rgba(255,111,0,0.06);
+  box-shadow: 0 0 10px rgba(255,111,0,0.25);
 }
 .sale-val { font-weight: 700; color: var(--green); }
 .sale-amt { font-weight: 700; color: var(--accent); }
@@ -533,7 +539,8 @@ html, body {
 .inp-date:focus, .inp-text:focus, .inp-num:focus, .inp-select:focus {
   outline: none;
   border-color: var(--accent);
-  background: rgba(79,141,255,0.08);
+  background: rgba(255,111,0,0.06);
+  box-shadow: 0 0 10px rgba(255,111,0,0.25);
 }
 .inp-date { color-scheme: dark; }
 .inp-select option { background: var(--bg3); color: var(--text); }
@@ -602,8 +609,8 @@ html, body {
   justify-content: space-between;
   margin: 10px 0 6px;
   padding: 8px 10px;
-  background: rgba(79,141,255,0.07);
-  border: 1px solid rgba(79,141,255,0.18);
+  background: rgba(255,111,0,0.07);
+  border: 1px solid rgba(255,111,0,0.2);
   border-radius: var(--radius-sm);
   font-size: 12px;
   font-weight: 600;
@@ -645,7 +652,7 @@ html, body {
    BUTTONS
 ============================ */
 .btn-save {
-  background: linear-gradient(135deg, #4f8dff, #7c5cfc);
+  background: linear-gradient(135deg, #0055d4, #ff6f00);
   color: #fff;
   border: none;
   padding: 12px 28px;
@@ -654,10 +661,10 @@ html, body {
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s;
-  font-family: 'Inter', sans-serif;
-  box-shadow: 0 4px 16px rgba(79,141,255,0.3);
+  font-family: 'Outfit', sans-serif;
+  box-shadow: 0 4px 16px rgba(255,111,0,0.25);
 }
-.btn-save:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(79,141,255,0.4); }
+.btn-save:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(255,111,0,0.4); }
 .btn-save:active { transform: translateY(0); }
 
 .btn-ghost {
@@ -670,12 +677,12 @@ html, body {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Outfit', sans-serif;
 }
 .btn-ghost:hover { border-color: var(--text2); color: var(--text); }
 
 .btn-primary {
-  background: linear-gradient(135deg, #4f8dff, #7c5cfc);
+  background: linear-gradient(135deg, #0055d4, #ff6f00);
   color: #fff;
   border: none;
   padding: 10px 20px;
@@ -684,24 +691,24 @@ html, body {
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s;
-  font-family: 'Inter', sans-serif;
-  box-shadow: 0 2px 12px rgba(79,141,255,0.25);
+  font-family: 'Outfit', sans-serif;
+  box-shadow: 0 2px 12px rgba(255,111,0,0.2);
 }
-.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(79,141,255,0.4); }
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(255,111,0,0.3); }
 
 .btn-search {
-  background: linear-gradient(135deg, rgba(79,141,255,0.2), rgba(124,92,252,0.2));
+  background: linear-gradient(135deg, rgba(0,85,212,0.12), rgba(255,111,0,0.12));
   color: var(--accent);
-  border: 1px solid rgba(79,141,255,0.35);
+  border: 1px solid rgba(255,111,0,0.25);
   padding: 9px 20px;
   border-radius: var(--radius-sm);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Outfit', sans-serif;
 }
-.btn-search:hover { background: rgba(79,141,255,0.25); }
+.btn-search:hover { background: rgba(255,111,0,0.18); }
 
 .btn-print {
   background: rgba(45,212,164,0.15);
