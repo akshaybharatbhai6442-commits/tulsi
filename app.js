@@ -2601,3 +2601,110 @@ function generateOtherItemsPDF() {
   doc.save(`OtherItemsReport_${from}_to_${to}.pdf`);
   showToast('📄 Other Items PDF downloaded!', 'success');
 }
+
+function generateCollectionPDF() {
+  const from = document.getElementById('dailyFrom').value || document.getElementById('dailyDate').value;
+  const to   = document.getElementById('dailyTo').value   || document.getElementById('dailyDate').value;
+  if (!from) { showToast('Select a date or date range first.', 'error'); return; }
+
+  if (typeof window.jspdf === 'undefined' && typeof jsPDF === 'undefined') {
+    showToast('PDF library not loaded. Open via START_PUMPPRO.bat.', 'error'); return;
+  }
+  const { jsPDF } = window.jspdf || window;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const W = doc.internal.pageSize.getWidth();
+  const printedOn = new Date().toLocaleString('en-IN');
+
+  let y = pdfHeader(doc, 'CASH COLLECTION BREAKDOWN REPORT', `Period: ${fmtDate(from)} to ${fmtDate(to)}  |  Printed: ${printedOn}`);
+
+  // Fetch shifts in date range
+  const rangeShifts = state.shifts
+    .filter(s => s.date >= from && s.date <= to)
+    .sort((a, b) => a.date.localeCompare(b.date) || a.shift.localeCompare(b.shift));
+
+  const tableHead = [['Date', 'Shift', 'Cash (Rs.)', 'Card (Rs.)', 'UPI (Rs.)', 'ExtraPower', 'Credit/Party', 'Other', 'Total (Rs.)']];
+  const tableRows = [];
+
+  let grandCash = 0, grandCard = 0, grandUPI = 0, grandEP = 0, grandCredit = 0, grandOther = 0, grandTotal = 0;
+
+  rangeShifts.forEach(s => {
+    const shiftLabel = s.shift === 'day' ? 'Day' : 'Night';
+    const cash = parseFloat(s.cash.cash) || 0;
+    const card = parseFloat(s.cash.card) || 0;
+    const upi = parseFloat(s.cash.upi) || 0;
+    const extraPower = parseFloat(s.cash.extraPower) || 0;
+    const credit = parseFloat(s.cash.credit) || 0;
+    const other = parseFloat(s.cash.otherTotal || s.cash.other) || 0;
+    const total = parseFloat(s.cash.totalCollection) || 0;
+
+    tableRows.push([
+      fmtDate(s.date),
+      shiftLabel,
+      fmtNum(cash, 2),
+      fmtNum(card, 2),
+      fmtNum(upi, 2),
+      fmtNum(extraPower, 2),
+      fmtNum(credit, 2),
+      fmtNum(other, 2),
+      fmtNum(total, 2)
+    ]);
+
+    grandCash += cash;
+    grandCard += card;
+    grandUPI += upi;
+    grandEP += extraPower;
+    grandCredit += credit;
+    grandOther += other;
+    grandTotal += total;
+  });
+
+  if (!tableRows.length) {
+    showToast('No shift records found for selected period.', 'info');
+    return;
+  }
+
+  // Add Grand Total row
+  tableRows.push([
+    'TOTAL',
+    '',
+    fmtNum(grandCash, 2),
+    fmtNum(grandCard, 2),
+    fmtNum(grandUPI, 2),
+    fmtNum(grandEP, 2),
+    fmtNum(grandCredit, 2),
+    fmtNum(grandOther, 2),
+    fmtNum(grandTotal, 2)
+  ]);
+
+  doc.autoTable({
+    startY: y,
+    head: tableHead,
+    body: tableRows,
+    theme: 'grid',
+    styles: { fontSize: 7.5, cellPadding: 2.2, textColor: [30, 30, 60] },
+    headStyles: { fillColor: [26, 188, 156], textColor: 255, fontStyle: 'bold', fontSize: 8 }, // Teal theme
+    alternateRowStyles: { fillColor: [240, 252, 249] },
+    didParseCell: (data) => {
+      // Bold grand total row
+      if (data.row.index === tableRows.length - 1) {
+        data.cell.styles.fontStyle = 'bold';
+        data.cell.styles.fillColor = [209, 242, 235];
+        data.cell.styles.textColor = [22, 100, 85];
+      }
+    },
+    margin: { left: 10, right: 10 },
+  });
+
+  // Page numbers
+  const totalPages = doc.internal.getNumberOfPages();
+  for (let p = 1; p <= totalPages; p++) {
+    doc.setPage(p);
+    doc.setFontSize(7);
+    doc.setTextColor(150, 150, 180);
+    doc.text(`Page ${p} of ${totalPages}  |  ${state.pumpInfo.name}  |  Generated: ${printedOn}`,
+      W / 2, doc.internal.pageSize.getHeight() - 6, { align: 'center' });
+  }
+
+  doc.save(`CollectionReport_${from}_to_${to}.pdf`);
+  showToast('📄 Collection PDF downloaded!', 'success');
+}
