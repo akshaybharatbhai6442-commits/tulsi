@@ -1,7 +1,7 @@
 /* ============================================================
    PumpPro - app.js
    Complete Petrol Pump Management Logic
-   Viewer Mode: Reads from Google Firebase cloud
+   Data saves to: f:\PUMP\data.json  via local server
    ============================================================ */
 
 // =====================
@@ -20,34 +20,6 @@ let currentShift = 'day';
 let isShiftUnlocked = false;
 const SERVER_URL = 'http://localhost:3131'; // Local Node.js server
 let serverOnline = false;
-
-// ==========================================
-// FIREBASE CONFIG & INIT (100% Google Cloud)
-// ==========================================
-const firebaseConfig = {
-  apiKey: "AIzaSyD2ztmQ0BI_-NFTTxQ6tZz52Nu7TNZBcIE",
-  authDomain: "pumppro-mobile.firebaseapp.com",
-  databaseURL: "https://pumppro-mobile-default-rtdb.firebaseio.com",
-  projectId: "pumppro-mobile",
-  storageBucket: "pumppro-mobile.firebasestorage.app",
-  messagingSenderId: "3889303886",
-  appId: "1:3889303886:web:10bd99a397e0095c9d0e1f",
-  measurementId: "G-P82ZLNDRTN"
-};
-
-let db = null;
-let useFirebase = false;
-
-if (typeof firebase !== 'undefined') {
-  try {
-    firebase.initializeApp(firebaseConfig);
-    db = firebase.database();
-    useFirebase = true;
-    console.log('🔥 Google Firebase connected for First Pump!');
-  } catch (e) {
-    console.error('Firebase initialization failed:', e);
-  }
-}
 
 // =====================
 // INIT
@@ -103,13 +75,13 @@ function showServerStatus(status) {
     const topRight = document.querySelector('.topbar-right');
     if (topRight) topRight.prepend(badge);
   }
-  if (status === 'cloud' || status === 'online') {
-    badge.textContent = '☁️ Cloud View';
-    badge.style.background = 'rgba(45,156,219,0.15)';
-    badge.style.border = '1px solid rgba(45,156,219,0.4)';
-    badge.style.color = '#2d9cdb';
+  if (status === 'online') {
+    badge.textContent = '🟢 PC Save';
+    badge.style.background = 'rgba(45,212,164,0.15)';
+    badge.style.border = '1px solid rgba(45,212,164,0.4)';
+    badge.style.color = '#2dd4a4';
   } else if (status === 'offline') {
-    badge.textContent = '🔴 Offline';
+    badge.textContent = '🔴 Server Offline';
     badge.style.background = 'rgba(255,77,77,0.15)';
     badge.style.border = '1px solid rgba(255,77,77,0.4)';
     badge.style.color = '#ff4d4d';
@@ -122,31 +94,34 @@ function showServerStatus(status) {
 }
 
 async function saveToStorage() {
-  // Read-only on mobile to prevent desyncing from local PC
-  updateLastSaved();
-  console.log('Mobile app is in read-only mode.');
+  // Always save to localStorage as instant fallback
+  localStorage.setItem('pumppro_data', JSON.stringify(state));
+  updateLastSaved(); // show timestamp immediately
+
+  // Save to PC file via server
+  try {
+    const res = await fetch(`${SERVER_URL}/api/save`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(state),
+    });
+    if (res.ok) {
+      serverOnline = true;
+      showServerStatus('online');
+      updateLastSaved();
+    } else {
+      throw new Error('Save failed');
+    }
+  } catch (e) {
+    serverOnline = false;
+    showServerStatus('offline');
+    // Data is still in localStorage — not lost
+    console.warn('Server offline, data in localStorage only.');
+  }
 }
 
 async function loadFromServer() {
-  // Try loading from Firebase Realtime Database
-  if (useFirebase && db) {
-    try {
-      const snapshot = await db.ref('petrol_pump_state').once('value');
-      const loaded = snapshot.val();
-      if (loaded && Object.keys(loaded).length > 0) {
-        state = { ...state, ...loaded };
-        localStorage.setItem('pumppro_data', JSON.stringify(state));
-        serverOnline = true;
-        showServerStatus('cloud');
-        console.log('✅ First pump data loaded from Google Firebase');
-        return;
-      }
-    } catch (e) {
-      console.warn('Firebase load failed:', e);
-    }
-  }
-
-  // Fallback to local server (if testing locally on the PC)
+  // Try loading from PC file (server)
   try {
     const res = await fetch(`${SERVER_URL}/api/load`);
     if (res.ok) {
@@ -154,10 +129,10 @@ async function loadFromServer() {
       const loaded = JSON.parse(raw);
       if (loaded && Object.keys(loaded).length > 0) {
         state = { ...state, ...loaded };
-        localStorage.setItem('pumppro_data', JSON.stringify(state));
+        localStorage.setItem('pumppro_data', JSON.stringify(state)); // sync to localStorage too
         serverOnline = true;
         showServerStatus('online');
-        console.log('✅ Data loaded from PC server');
+        console.log('✅ Data loaded from PC file (data.json)');
         return;
       }
     }
@@ -322,7 +297,7 @@ function loadShiftIfExists() {
     state.tanks.forEach((tank, i) => {
       const tData = existing.tanks.find(t => t.tankId === tank.id);
       if (tData) {
-        setVal(`dip_${i}`, tData.closingStock !== null ? tData.closingStock : '');
+        setVal(`dip_${i}`, (tData.closingStock !== null && tData.closingStock !== undefined) ? tData.closingStock : '');
         setVal(`purch_${i}`, tData.purchaseQty || '');
       } else {
         setVal(`dip_${i}`, '');
@@ -1320,10 +1295,10 @@ function getDSRData(year, month) {
       const sortedShifts = [...dayShifts].sort((a, b) => a.shift.localeCompare(b.shift));
       const lastShift = sortedShifts[sortedShifts.length - 1];
       
-      let pDips = lastShift.tanks.filter(t => t.fuel === 'Petrol' && t.closingStock !== null);
+      let pDips = lastShift.tanks.filter(t => t.fuel === 'Petrol' && t.closingStock !== null && t.closingStock !== undefined);
       if (pDips.length) pDip = pDips.reduce((sum, t) => sum + t.closingStock, 0);
       
-      let dDips = lastShift.tanks.filter(t => t.fuel === 'Diesel' && t.closingStock !== null);
+      let dDips = lastShift.tanks.filter(t => t.fuel === 'Diesel' && t.closingStock !== null && t.closingStock !== undefined);
       if (dDips.length) dDip = dDips.reduce((sum, t) => sum + t.closingStock, 0);
     }
     
@@ -2525,4 +2500,104 @@ function generateDailySalesPDF() {
 
   doc.save(`DailySalesReport_${from}_to_${to}.pdf`);
   showToast('📊 Daily Sales PDF downloaded!', 'success');
+}
+
+function generateOtherItemsPDF() {
+  const from = document.getElementById('dailyFrom').value || document.getElementById('dailyDate').value;
+  const to   = document.getElementById('dailyTo').value   || document.getElementById('dailyDate').value;
+  if (!from) { showToast('Select a date or date range first.', 'error'); return; }
+
+  if (typeof window.jspdf === 'undefined' && typeof jsPDF === 'undefined') {
+    showToast('PDF library not loaded. Open via START_PUMPPRO.bat.', 'error'); return;
+  }
+  const { jsPDF } = window.jspdf || window;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const W = doc.internal.pageSize.getWidth();
+  const printedOn = new Date().toLocaleString('en-IN');
+
+  let y = pdfHeader(doc, 'OTHER ITEMS REPORT (EXPENSE / INCOME)', `Period: ${fmtDate(from)} to ${fmtDate(to)}  |  Printed: ${printedOn}`);
+
+  // Fetch all shifts in date range
+  const rangeShifts = state.shifts
+    .filter(s => s.date >= from && s.date <= to)
+    .sort((a, b) => a.date.localeCompare(b.date) || a.shift.localeCompare(b.shift));
+
+  const tableHead = [['Date', 'Shift', 'Item / Expense / Income Name', 'Amount (Rs.)']];
+  const tableRows = [];
+  let grandTotal = 0;
+
+  rangeShifts.forEach(s => {
+    const shiftLabel = s.shift === 'day' ? 'Day' : 'Night';
+    
+    // Modern format: list of other items
+    if (s.cash.otherItems && s.cash.otherItems.length) {
+      s.cash.otherItems.forEach(oi => {
+        const amt = parseFloat(oi.amount) || 0;
+        if (oi.name.trim() !== '' && amt > 0) {
+          tableRows.push([
+            fmtDate(s.date),
+            shiftLabel,
+            oi.name,
+            'Rs. ' + fmtNum(amt)
+          ]);
+          grandTotal += amt;
+        }
+      });
+    } else if (s.cash.other && parseFloat(s.cash.other) > 0) {
+      // Legacy format
+      const amt = parseFloat(s.cash.other);
+      tableRows.push([
+        fmtDate(s.date),
+        shiftLabel,
+        'Other',
+        'Rs. ' + fmtNum(amt)
+      ]);
+      grandTotal += amt;
+    }
+  });
+
+  if (!tableRows.length) {
+    showToast('No other items (expense/income) found for selected period.', 'info');
+    return;
+  }
+
+  // Add Grand Total row
+  tableRows.push([
+    'TOTAL',
+    '',
+    '',
+    'Rs. ' + fmtNum(grandTotal)
+  ]);
+
+  doc.autoTable({
+    startY: y,
+    head: tableHead,
+    body: tableRows,
+    theme: 'grid',
+    styles: { fontSize: 8, cellPadding: 2.5, textColor: [30, 30, 60] },
+    headStyles: { fillColor: [142, 68, 173], textColor: 255, fontStyle: 'bold', fontSize: 8.5 }, // Purple theme
+    alternateRowStyles: { fillColor: [250, 243, 253] },
+    didParseCell: (data) => {
+      // Bold grand total row
+      if (data.row.index === tableRows.length - 1) {
+        data.cell.styles.fontStyle = 'bold';
+        data.cell.styles.fillColor = [243, 229, 245];
+        data.cell.styles.textColor = [142, 68, 173];
+      }
+    },
+    margin: { left: 15, right: 15 },
+  });
+
+  // Page numbers
+  const totalPages = doc.internal.getNumberOfPages();
+  for (let p = 1; p <= totalPages; p++) {
+    doc.setPage(p);
+    doc.setFontSize(7);
+    doc.setTextColor(150, 150, 180);
+    doc.text(`Page ${p} of ${totalPages}  |  ${state.pumpInfo.name}  |  Generated: ${printedOn}`,
+      W / 2, doc.internal.pageSize.getHeight() - 6, { align: 'center' });
+  }
+
+  doc.save(`OtherItemsReport_${from}_to_${to}.pdf`);
+  showToast('📄 Other Items PDF downloaded!', 'success');
 }

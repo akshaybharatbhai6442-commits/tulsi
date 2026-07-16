@@ -515,6 +515,10 @@
                 📊 Daily Sales PDF
                 <span class="pdf-btn-hint">Date-wise Sales Summary</span>
               </button>
+              <button class="btn-pdf-daily" style="background:#8e44ad; border-color:#8e44ad;" onclick="generateOtherItemsPDF()">
+                📋 Other Items PDF
+                <span class="pdf-btn-hint">Expense/Income Summary</span>
+              </button>
               <button class="btn-print" onclick="printSection('dailyReportPrint')">🖨️ Print</button>
             </div>
           </div>
@@ -725,10 +729,6 @@
 
   <!-- ===== TOAST NOTIFICATION ===== -->
   <div class="toast-container" id="toastContainer"></div>
-
-  <!-- Firebase SDKs (Compatibility Mode for Vanilla JS) -->
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
   <script src="app.js"></script>
 </body>
