@@ -14,6 +14,7 @@ let state = {
   nozzles: [],    // [{id, name, fuel, tankId}]
   shifts: [],     // [{id, date, shift, nozzles:[...], tanks:[...], cash:{...}, remarks, savedAt}]
   supplies: [],   // [{id, date, tankId, qty, bill, supplier, remark}]
+  githubSettings: { enabled: false, owner: '', repo: '', token: '' }
 };
 
 let currentShift = 'day';
@@ -93,7 +94,7 @@ function showServerStatus(status) {
   }
 }
 
-async function saveToStorage() {
+async function saveToStorage(isSyncImmediate = false) {
   // Always save to localStorage as instant fallback
   localStorage.setItem('pumppro_data', JSON.stringify(state));
   updateLastSaved(); // show timestamp immediately
@@ -109,6 +110,11 @@ async function saveToStorage() {
       serverOnline = true;
       showServerStatus('online');
       updateLastSaved();
+      
+      // If immediate sync requested and enabled, trigger GitHub auto-upload
+      if (isSyncImmediate && state.githubSettings && state.githubSettings.enabled) {
+        triggerManualGHSync();
+      }
     } else {
       throw new Error('Save failed');
     }
@@ -168,6 +174,12 @@ async function loadFromServer() {
       console.log('📦 Data loaded from browser localStorage (fallback)');
     } catch(e) {}
   }
+
+  // Ensure GitHub settings are initialized
+  if (!state.githubSettings) {
+    state.githubSettings = { enabled: false, owner: '', repo: '', token: '' };
+  }
+
   serverOnline = false;
   showServerStatus('offline');
 }
@@ -754,7 +766,7 @@ function saveShift() {
     showToast('✅ Shift saved successfully!', 'success');
   }
 
-  saveToStorage();
+  saveToStorage(true);
   updateDashboard();
   clearEntry();
 }
@@ -951,7 +963,7 @@ function saveSupply() {
   if (!date || !qty) { showToast('Enter date and quantity.', 'error'); return; }
 
   state.supplies.push({ id: Date.now(), date, tankId, qty, bill, supplier, remark });
-  saveToStorage();
+  saveToStorage(true);
   closeModal('supplyModal');
   showToast('✅ Fuel supply saved!', 'success');
   loadTankStock();
@@ -1110,7 +1122,7 @@ function buildTankSummary(from, to) {
 function deleteSupply(id) {
   if (!confirm('Delete this supply record?')) return;
   state.supplies = state.supplies.filter(s => s.id !== id);
-  saveToStorage();
+  saveToStorage(true);
   loadTankStock();
   showToast('Supply record deleted.', 'info');
 }
@@ -1787,7 +1799,7 @@ function savePumpInfo() {
     gst:     document.getElementById('setGST').value,
     contact: document.getElementById('setContact').value,
   };
-  saveToStorage();
+  saveToStorage(true);
   updateSidebarPumpName();
   showToast('✅ Pump info saved!', 'success');
 }
@@ -1795,7 +1807,7 @@ function savePumpInfo() {
 function saveRates() {
   state.rates.Petrol = parseFloat(document.getElementById('setRatePetrol').value) || 0;
   state.rates.Diesel = parseFloat(document.getElementById('setRateDiesel').value) || 0;
-  saveToStorage();
+  saveToStorage(true);
   showToast('✅ Fuel rates saved!', 'success');
 }
 
@@ -1809,9 +1821,59 @@ function renderSettingsForms() {
   // Rates
   setVal('setRatePetrol', state.rates.Petrol);
   setVal('setRateDiesel', state.rates.Diesel);
+  
+  // GitHub Settings
+  if (state.githubSettings) {
+    document.getElementById('setGHSyncEnabled').checked = state.githubSettings.enabled || false;
+    setVal('setGHUsername', state.githubSettings.owner || '');
+    setVal('setGHRepo',     state.githubSettings.repo || '');
+    setVal('setGHToken',    state.githubSettings.token || '');
+  }
+
   // Tanks & Nozzles
   renderTankConfigTable();
   renderNozzleConfigTable();
+}
+
+function saveGitHubSettings() {
+  state.githubSettings = {
+    enabled: document.getElementById('setGHSyncEnabled').checked,
+    owner:   document.getElementById('setGHUsername').value.trim(),
+    repo:    document.getElementById('setGHRepo').value.trim(),
+    token:   document.getElementById('setGHToken').value.trim()
+  };
+  saveToStorage(true);
+  showToast('✅ GitHub Sync settings saved!', 'success');
+  
+  if (state.githubSettings.enabled) {
+    triggerManualGHSync();
+  }
+}
+
+async function triggerManualGHSync() {
+  if (!state.githubSettings.owner || !state.githubSettings.repo || !state.githubSettings.token) {
+    showToast('❌ Please fill in GitHub details first.', 'error');
+    return;
+  }
+
+  showToast('📡 Connecting to GitHub...', 'info');
+
+  try {
+    const res = await fetch(`${SERVER_URL}/api/github-sync`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(state)
+    });
+
+    if (res.ok) {
+      showToast('🚀 GitHub Auto-Sync Successful!', 'success');
+    } else {
+      const data = await res.json();
+      showToast(`❌ Sync Failed: ${data.error || 'Check details'}`, 'error');
+    }
+  } catch (e) {
+    showToast('❌ Local server offline. Sync only works on PC!', 'error');
+  }
 }
 
 // --- Tank Config ---
@@ -1859,7 +1921,7 @@ function saveTankConfig() {
     if (no) tanks.push({ id, name: `Tank ${no}`, fuel, capacity: cap, stock: stk });
   });
   state.tanks = tanks;
-  saveToStorage();
+  saveToStorage(true);
   renderTankDipArea();
   updateDashboard();
   showToast(`✅ ${tanks.length} tanks saved!`, 'success');
@@ -1926,7 +1988,7 @@ function saveNozzleConfig() {
     if (name) nozzles.push({ id, name, fuel, tankId });
   });
   state.nozzles = nozzles;
-  saveToStorage();
+  saveToStorage(true);
   renderNozzleEntryTable();
   showToast(`✅ ${nozzles.length} nozzles saved!`, 'success');
 }
@@ -1954,7 +2016,7 @@ function importData(e) {
       const imported = JSON.parse(ev.target.result);
       if (confirm('This will REPLACE all current data. Continue?')) {
         state = imported;
-        saveToStorage();
+        saveToStorage(true);
         renderSettingsForms();
         renderNozzleEntryTable();
         renderTankDipArea();
