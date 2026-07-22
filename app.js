@@ -148,7 +148,7 @@ async function loadFromServer() {
 
   // 2. Fallback: try loading from the hosted path (e.g. GitHub Pages './data.json')
   try {
-    const res = await fetch('./data.json', { cache: 'no-store' });
+    const res = await fetch('./data.json?t=' + Date.now(), { cache: 'no-store' });
     if (res.ok) {
       const raw = await res.text();
       const loaded = JSON.parse(raw);
@@ -218,7 +218,13 @@ function initClock() {
 
 function initDates() {
   const today = todayStr();
-  setVal('entryDate', today);
+  const expected = getExpectedNextShift();
+  const defaultDate = expected ? expected.date : today;
+  const defaultShift = expected ? expected.shift : 'day';
+
+  setVal('entryDate', defaultDate);
+  selectShift(defaultShift);
+
   setVal('tankFrom', monthStart());
   setVal('tankTo', today);
   setVal('nozFrom', monthStart());
@@ -233,6 +239,36 @@ function initDates() {
 function todayStr() {
   return new Date().toISOString().slice(0,10);
 }
+function getNextDayStr(dateStr) {
+  if (!dateStr) return todayStr();
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  dt.setDate(dt.getDate() + 1);
+  const yyyy = dt.getFullYear();
+  const mm = String(dt.getMonth() + 1).padStart(2, '0');
+  const dd = String(dt.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function getExpectedNextShift() {
+  if (!state.shifts || state.shifts.length === 0) return null;
+
+  const sorted = [...state.shifts].sort((a, b) => {
+    if (a.date !== b.date) return a.date.localeCompare(b.date);
+    if (a.shift === b.shift) return 0;
+    return a.shift === 'day' ? -1 : 1;
+  });
+
+  const latest = sorted[sorted.length - 1];
+  if (!latest) return null;
+
+  if (latest.shift === 'day') {
+    return { date: latest.date, shift: 'night' };
+  } else {
+    return { date: getNextDayStr(latest.date), shift: 'day' };
+  }
+}
+
 function monthStart() {
   const d = new Date();
   d.setDate(1);
@@ -484,20 +520,25 @@ function renderNozzleEntryTable() {
 }
 
 function unlockOpeningField(i) {
-  const el = document.getElementById(`nz_open_${i}`);
-  const btn = document.getElementById(`nz_unlock_btn_${i}`);
-  if (el) {
-    el.removeAttribute('readonly');
-    el.style.background = '';
-    el.style.color = '';
-    el.style.borderColor = '';
-    el.style.paddingRight = '';
-    el.focus();
+  const password = prompt("Enter Password to edit opening reading:");
+  if (password === 'PRANAV@6442') {
+    const el = document.getElementById(`nz_open_${i}`);
+    const btn = document.getElementById(`nz_unlock_btn_${i}`);
+    if (el) {
+      el.removeAttribute('readonly');
+      el.style.background = '';
+      el.style.color = '';
+      el.style.borderColor = '';
+      el.style.paddingRight = '';
+      el.focus();
+    }
+    if (btn) {
+      btn.remove(); // Remove the lock button once unlocked
+    }
+    showToast('🔓 Opening reading unlocked for editing.', 'success');
+  } else if (password !== null) {
+    showToast('❌ Incorrect Password! Lock remains.', 'error');
   }
-  if (btn) {
-    btn.remove(); // Remove the lock button once unlocked
-  }
-  showToast('🔓 Opening reading unlocked for editing.', 'info');
 }
 
 function getLastShiftEntry() {
@@ -761,6 +802,28 @@ function saveShift() {
     state.shifts[existingIdx] = shiftEntry;
     showToast('✅ Shift entry updated successfully!', 'success');
   } else {
+    // ── Shift Sequence Check for New Shift ──────────────────
+    const expected = getExpectedNextShift();
+    if (expected) {
+      const isNext = (date === expected.date && currentShift === expected.shift);
+      if (!isNext) {
+        const expShiftLabel = expected.shift === 'day' ? 'DAY (🌞)' : 'NIGHT (🌙)';
+        const reqShiftLabel = currentShift === 'day' ? 'DAY (🌞)' : 'NIGHT (🌙)';
+        const pwd = prompt(`⚠️ SHIFT SEQUENCE MISMATCH!\n\nNext expected shift in sequence is:\n👉 ${fmtDate(expected.date)} - ${expShiftLabel}\n\nYou selected:\n👉 ${fmtDate(date)} - ${reqShiftLabel}\n\nTo skip ${fmtDate(expected.date)} (${expected.shift.toUpperCase()}) and save this shift anyway, enter Password (PRANAV@6442):`);
+        
+        if (pwd === 'PRANAV@6442') {
+          showToast('🔓 Sequence override authorized with password.', 'info');
+        } else {
+          if (pwd !== null) {
+            showToast('❌ Incorrect Password! Cannot skip expected shift sequence.', 'error');
+          } else {
+            showToast('ℹ️ Save cancelled to maintain shift sequence.', 'info');
+          }
+          return;
+        }
+      }
+    }
+
     // Save new shift
     state.shifts.push(shiftEntry);
     showToast('✅ Shift saved successfully!', 'success');
