@@ -236,18 +236,23 @@ function initDates() {
   setVal('dsrMonth', today.slice(0, 7)); // e.g. "2026-07"
 }
 
+function dateToStr(d) {
+  if (!(d instanceof Date) || isNaN(d)) return '';
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 function todayStr() {
-  return new Date().toISOString().slice(0,10);
+  return dateToStr(new Date());
 }
 function getNextDayStr(dateStr) {
   if (!dateStr) return todayStr();
   const [y, m, d] = dateStr.split('-').map(Number);
   const dt = new Date(y, m - 1, d);
   dt.setDate(dt.getDate() + 1);
-  const yyyy = dt.getFullYear();
-  const mm = String(dt.getMonth() + 1).padStart(2, '0');
-  const dd = String(dt.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
+  return dateToStr(dt);
 }
 
 function getExpectedNextShift() {
@@ -272,7 +277,7 @@ function getExpectedNextShift() {
 function monthStart() {
   const d = new Date();
   d.setDate(1);
-  return d.toISOString().slice(0,10);
+  return dateToStr(d);
 }
 function fmtDate(str) {
   if (!str) return '';
@@ -1274,10 +1279,12 @@ function loadDailyRange() {
   if (!from || !to) { showToast('Select from and to dates.', 'error'); return; }
 
   const dates = [];
-  let cur = new Date(from);
-  const end = new Date(to);
+  const [fy, fm, fd] = from.split('-').map(Number);
+  const [ty, tm, td] = to.split('-').map(Number);
+  let cur = new Date(fy, fm - 1, fd);
+  const end = new Date(ty, tm - 1, td);
   while (cur <= end) {
-    dates.push(cur.toISOString().slice(0,10));
+    dates.push(dateToStr(cur));
     cur.setDate(cur.getDate() + 1);
   }
 
@@ -1342,10 +1349,11 @@ function getDSRData(year, month) {
   }
   
   const datesList = [];
-  let cur = new Date(startDateStr);
+  const [sy, sm, sd] = startDateStr.split('-').map(Number);
+  let cur = new Date(sy, sm - 1, sd);
   const endLimit = new Date(year, month - 1, daysInMonth);
   while (cur <= endLimit) {
-    datesList.push(cur.toISOString().slice(0, 10));
+    datesList.push(dateToStr(cur));
     cur.setDate(cur.getDate() + 1);
   }
   
@@ -1471,9 +1479,7 @@ function renderDSRTables(dsrData) {
   
   let nextDate = '';
   if (maxDate) {
-    const d = new Date(maxDate);
-    d.setDate(d.getDate() + 1);
-    nextDate = d.toISOString().slice(0, 10);
+    nextDate = getNextDayStr(maxDate);
   }
   
   const pSaleTotal = rows.reduce((s, r) => s + (state.shifts.some(sh => sh.date === r.date) ? r.Petrol.sale : 0), 0);
@@ -1615,9 +1621,7 @@ function exportDSRCSV() {
   
   let nextDate = '';
   if (maxDate) {
-    const d = new Date(maxDate);
-    d.setDate(d.getDate() + 1);
-    nextDate = d.toISOString().slice(0, 10);
+    nextDate = getNextDayStr(maxDate);
   }
   
   let csv = 'DAILY SALES REGISTER (DSR) - ' + dsrMonth + '\r\n\r\n';
@@ -2534,9 +2538,14 @@ function generateDailySalesPDF() {
 
   // ── Build date-wise summary ─────────────────────────────────────────
   const dates = [];
-  let cur = new Date(from);
-  const end = new Date(to);
-  while (cur <= end) { dates.push(cur.toISOString().slice(0, 10)); cur.setDate(cur.getDate() + 1); }
+  const [fy, fm, fd] = from.split('-').map(Number);
+  const [ty, tm, td] = to.split('-').map(Number);
+  let cur = new Date(fy, fm - 1, fd);
+  const end = new Date(ty, tm - 1, td);
+  while (cur <= end) {
+    dates.push(dateToStr(cur));
+    cur.setDate(cur.getDate() + 1);
+  }
 
   const tableHead = [[
     'Date', 'Shift', 'Petrol (L)', 'Petrol (Rs)',
