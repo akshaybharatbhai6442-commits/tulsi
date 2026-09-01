@@ -583,13 +583,23 @@ function calcNozzleRow(i) {
   const open    = parseFloat(document.getElementById(`nz_open_${i}`)?.value) || 0;
   const close   = parseFloat(document.getElementById(`nz_close_${i}`)?.value) || 0;
   const testing = parseFloat(document.getElementById(`nz_testing_${i}`)?.value) || 0;
-  const sale    = Math.max(0, close - open - testing);  // exact decimal
+  const sale    = close > 0 ? (close - open - testing) : 0;  // exact decimal
   const nz      = state.nozzles[i];
   const rate    = state.rates[nz.fuel] || 0;
   const amt     = sale * rate;
 
-  document.getElementById(`nz_sale_${i}`).textContent = fmtNum(sale, 2) + ' L';  // decimal display
-  document.getElementById(`nz_amt_${i}`).textContent  = fmtRs(amt);
+  const saleEl = document.getElementById(`nz_sale_${i}`);
+  if (saleEl) {
+    saleEl.textContent = fmtNum(sale, 2) + ' L';
+    saleEl.style.color = sale < 0 ? 'var(--danger)' : '';
+  }
+  
+  const amtEl = document.getElementById(`nz_amt_${i}`);
+  if (amtEl) {
+    amtEl.textContent = fmtRs(amt);
+    amtEl.style.color = amt < 0 ? 'var(--danger)' : '';
+  }
+
   document.getElementById(`nz_rate_${i}`).textContent = fmtNum(rate);
 
   updateNozzleTotals();
@@ -602,7 +612,7 @@ function updateNozzleTotals() {
     const open    = parseFloat(document.getElementById(`nz_open_${i}`)?.value) || 0;
     const close   = parseFloat(document.getElementById(`nz_close_${i}`)?.value) || 0;
     const testing = parseFloat(document.getElementById(`nz_testing_${i}`)?.value) || 0;
-    const sale    = Math.max(0, close - open - testing);
+    const sale    = close > 0 ? (close - open - testing) : 0;
     const rate    = state.rates[nz.fuel] || 0;
     totalL  += sale;
     totalRs += sale * rate;
@@ -617,7 +627,7 @@ function getNozzleTotalAmt() {
     const open    = parseFloat(document.getElementById(`nz_open_${i}`)?.value) || 0;
     const close   = parseFloat(document.getElementById(`nz_close_${i}`)?.value) || 0;
     const testing = parseFloat(document.getElementById(`nz_testing_${i}`)?.value) || 0;
-    const sale    = Math.max(0, close - open - testing);
+    const sale    = close > 0 ? (close - open - testing) : 0;
     const rate    = state.rates[nz.fuel] || 0;
     total += sale * rate;
   });
@@ -723,7 +733,7 @@ function saveShift() {
     const open    = parseFloat(document.getElementById(`nz_open_${i}`)?.value) || 0;
     const close   = parseFloat(document.getElementById(`nz_close_${i}`)?.value) || 0;
     const testing = parseFloat(document.getElementById(`nz_testing_${i}`)?.value) || 0;
-    const sale    = Math.max(0, close - open - testing);
+    const sale    = close > 0 ? (close - open - testing) : 0;
     const rate    = state.rates[nz.fuel] || 0;
     if (close > 0) hasReading = true;
     return {
