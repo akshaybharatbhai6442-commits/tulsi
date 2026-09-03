@@ -236,22 +236,23 @@
             <div class="card">
               <div class="card-hdr"><h2>💰 Cash &amp; Collection</h2></div>
               <div class="cash-block">
+                <div id="dayShiftSummaryBanner" style="display:none;" class="day-summary-banner"></div>
 
                 <!-- Fixed Modes -->
                 <div class="cash-row">
-                  <label>💳 Card (₹)</label>
+                  <label>💳 Card (₹) <span id="refDayCard"></span></label>
                   <input type="number" id="inCard" class="inp-num" placeholder="0" oninput="recalcCash()" />
                 </div>
                 <div class="cash-row">
-                  <label>📱 UPI (₹)</label>
+                  <label>📱 UPI (₹) <span id="refDayUPI"></span></label>
                   <input type="number" id="inUPI" class="inp-num" placeholder="0" oninput="recalcCash()" />
                 </div>
                 <div class="cash-row">
-                  <label>⚡ ExtraPower Card (₹)</label>
+                  <label>⚡ ExtraPower Card (₹) <span id="refDayExtraPower"></span></label>
                   <input type="number" id="inExtraPower" class="inp-num" placeholder="0" oninput="recalcCash()" />
                 </div>
                 <div class="cash-row">
-                  <label>📒 Credit / Party (₹)</label>
+                  <label>📒 Credit / Party (₹) <span id="refDayCredit"></span></label>
                   <input type="number" id="inCredit" class="inp-num" placeholder="0" oninput="recalcCash()" />
                 </div>
 
@@ -671,6 +672,39 @@
               </table>
             </div>
             <button class="btn-save" style="margin-top:16px" onclick="saveNozzleConfig()">💾 Save Nozzles</button>
+          </div>
+
+          <!-- GitHub Auto-Sync Settings -->
+          <div class="card" style="border: 1px solid rgba(255, 111, 0, 0.25);">
+            <div class="card-hdr">
+              <h2>🌐 GitHub Auto-Sync (Mobile Connectivity)</h2>
+              <span class="badge-live" style="background: rgba(255, 111, 0, 0.15); color: var(--accent); border-color: rgba(255, 111, 0, 0.3);">AUTO</span>
+            </div>
+            <div class="sett-form">
+              <p style="font-size: 12px; color: var(--text2); margin-bottom: 12px; line-height: 1.5;">
+                Enable auto-sync to upload your petrol pump entries directly to GitHub. This keeps your mobile phone view up-to-date automatically whenever you save or click sync.
+              </p>
+              <div class="sett-row">
+                <label>Enable GitHub Sync</label>
+                <input type="checkbox" id="setGHSyncEnabled" style="width: 20px; height: 20px; accent-color: var(--accent);" />
+              </div>
+              <div class="sett-row">
+                <label>GitHub Username</label>
+                <input type="text" id="setGHUsername" class="inp-text" placeholder="e.g. akshaybharatbhai6442-commits" />
+              </div>
+              <div class="sett-row">
+                <label>GitHub Repo Name</label>
+                <input type="text" id="setGHRepo" class="inp-text" placeholder="e.g. tulsi" />
+              </div>
+              <div class="sett-row">
+                <label>GitHub Token (PAT)</label>
+                <input type="password" id="setGHToken" class="inp-text" placeholder="ghp_xxxxxxxxxxxx" />
+              </div>
+              <div style="display: flex; gap: 12px; margin-top: 16px;">
+                <button class="btn-save" onclick="saveGitHubSettings()">💾 Save & Sync Settings</button>
+                <button class="btn-primary" style="background: #2dd4a4; box-shadow: 0 4px 16px rgba(45, 212, 164, 0.25);" onclick="triggerManualGHSync()">🔄 Sync Now</button>
+              </div>
+            </div>
           </div>
 
           <!-- Data Management -->

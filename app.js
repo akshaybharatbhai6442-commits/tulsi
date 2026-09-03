@@ -405,6 +405,71 @@ function loadShiftIfExists() {
     clearFormInputsOnly();
     lockShiftForm(false);
   }
+  
+  updateDayShiftReferenceBadges();
+}
+
+function updateDayShiftReferenceBadges() {
+  const date = document.getElementById('entryDate')?.value;
+  const banner = document.getElementById('dayShiftSummaryBanner');
+  const refCard = document.getElementById('refDayCard');
+  const refUPI = document.getElementById('refDayUPI');
+  const refEP = document.getElementById('refDayExtraPower');
+  const refCredit = document.getElementById('refDayCredit');
+
+  // Reset display
+  if (banner) banner.style.display = 'none';
+  if (refCard) refCard.innerHTML = '';
+  if (refUPI) refUPI.innerHTML = '';
+  if (refEP) refEP.innerHTML = '';
+  if (refCredit) refCredit.innerHTML = '';
+
+  if (!date) return;
+
+  const dayShift = state.shifts.find(s => s.date === date && s.shift === 'day');
+
+  if (currentShift === 'night' && dayShift) {
+    const dayCard   = dayShift.cash.card || 0;
+    const dayUPI    = dayShift.cash.upi || 0;
+    const dayEP     = dayShift.cash.extraPower || 0;
+    const dayCredit = dayShift.cash.credit || 0;
+    const dayCash   = dayShift.cash.cash || 0;
+
+    if (banner) {
+      banner.style.display = 'flex';
+      banner.innerHTML = `☀️ <b>Day Shift Summary:</b> Card: ₹${fmtNum(dayCard)} | UPI: ₹${fmtNum(dayUPI)} | Cash: ₹${fmtNum(dayCash)}`;
+    }
+
+    if (refCard) {
+      refCard.innerHTML = `<span class="day-ref-badge" onclick="calcSubtract24h('inCard', 'Card', ${dayCard})" title="Click to subtract Day Card from 24h total">☀️ Day: ₹${fmtNum(dayCard)} ➖</span>`;
+    }
+
+    if (refUPI) {
+      refUPI.innerHTML = `<span class="day-ref-badge" onclick="calcSubtract24h('inUPI', 'UPI', ${dayUPI})" title="Click to subtract Day UPI from 24h total">☀️ Day: ₹${fmtNum(dayUPI)} ➖</span>`;
+    }
+
+    if (refEP && dayEP > 0) {
+      refEP.innerHTML = `<span class="day-ref-badge" onclick="calcSubtract24h('inExtraPower', 'ExtraPower', ${dayEP})" title="Click to subtract Day ExtraPower from 24h total">☀️ Day: ₹${fmtNum(dayEP)} ➖</span>`;
+    }
+
+    if (refCredit && dayCredit > 0) {
+      refCredit.innerHTML = `<span class="day-ref-badge" onclick="calcSubtract24h('inCredit', 'Credit', ${dayCredit})" title="Click to subtract Day Credit from 24h total">☀️ Day: ₹${fmtNum(dayCredit)} ➖</span>`;
+    }
+  }
+}
+
+function calcSubtract24h(inputId, modeName, dayAmt) {
+  const valStr = prompt(`📱 Enter 24-HOUR Machine Total ${modeName} Amount:\n\n☀️ (Day Shift ${modeName} was ₹ ${fmtNum(dayAmt)})\n\nThis will subtract Day Shift (₹ ${fmtNum(dayAmt)}) and fill Night Shift ${modeName} automatically:`);
+  if (valStr === null) return;
+  const total24h = parseFloat(valStr);
+  if (isNaN(total24h)) {
+    showToast('Invalid number entered.', 'error');
+    return;
+  }
+  const nightVal = Math.max(0, total24h - dayAmt);
+  setVal(inputId, nightVal);
+  recalcCash();
+  showToast(`✅ Night ${modeName} set to ₹ ${fmtNum(nightVal)} (24h ₹ ${fmtNum(total24h)} - Day ₹ ${fmtNum(dayAmt)})`, 'success');
 }
 
 function lockShiftForm(locked) {
